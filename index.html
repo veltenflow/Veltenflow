@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeltenFlow | Premium APK Hub</title>
+    <meta name="description"
+        content="A premium destination for high-quality APK downloads. Share and discover apps easily.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <header class="glass">
+        <div class="logo">VeltenFlow</div>
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="appSearch" placeholder="Search apps...">
+        </div>
+    </header>
+
+    <main>
+        <section class="hero staggered-fade-in">
+            <img src="hero.png" alt="APK Hub Hero"
+                style="width: 100%; border-radius: 24px; margin-bottom: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+            <h1>The Hub for Your<br><span style="color: var(--primary)">Android Universe</span></h1>
+            <p>Upload, share, and discover high-quality apps with ease.</p>
+        </section>
+
+        <div class="app-grid staggered-fade-in" id="appGrid">
+            <!-- App cards will be injected here -->
+        </div>
+    </main>
+
+    <div class="fab" id="openUpload" title="Upload New APK" style="display: none;">
+        <i class="fas fa-plus" style="color: white; font-size: 1.5rem;"></i>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav glass">
+        <a href="#" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-th-large"></i>
+            <span>Apps</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+        </a>
+        <a href="#" class="nav-item" id="loginBtn">
+            <i class="fas fa-user-shield"></i>
+            <span id="loginStatus">Login</span>
+        </a>
+    </nav>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal glass">
+            <h2>Add New APK</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="appName">App Name</label>
+                    <input type="text" id="appName" required placeholder="e.g. Photo Master">
+                </div>
+                <div class="form-group">
+                    <label for="appVersion">Version</label>
+                    <input type="text" id="appVersion" required placeholder="e.g. 1.2.0">
+                </div>
+                <div class="form-group">
+                    <label for="appIconFile">App Icon (ഐക്കൺ അപ്‌ലോഡ് ചെയ്യുക)</label>
+                    <div class="icon-upload-container">
+                        <input type="file" id="appIconFile" accept="image/*" hidden>
+                        <div class="icon-preview" id="iconPreview">
+                            <i class="fas fa-camera"></i>
+                            <span>Select Icon</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="display:none;">
+                    <label for="appIcon">Icon URL (Alternative)</label>
+                    <input type="url" id="appIcon" placeholder="https://example.com/icon.png">
+                </div>
+                <div class="form-group">
+                    <label for="apkUrl">APK File URL</label>
+                    <input type="url" id="apkUrl" required placeholder="Link to your APK file">
+                </div>
+                <button type="submit" class="submit-btn shadow">Publish App</button>
+            </form>
+            <button class="submit-btn"
+                style="background: transparent; border: 1px solid var(--glass-border); margin-top: 0.5rem;"
+                id="closeModal">Cancel</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
