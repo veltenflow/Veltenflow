@@ -11,31 +11,47 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
-    <header class="glass">
-        <div class="logo">VeltenFlow</div>
-        <div class="search-bar">
-            <i class="fas fa-search"></i>
-            <input type="text" id="appSearch" placeholder="Search apps...">
-        </div>
+    <header class="app-header">
+        <div class="logo">Veltenflow</div>
     </header>
 
-    <main>
-        <section class="hero staggered-fade-in">
-            <img src="hero.png" alt="APK Hub Hero"
-                style="width: 100%; border-radius: 24px; margin-bottom: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-            <h1>The Hub for Your<br><span style="color: var(--primary)">Android Universe</span></h1>
-            <p>Upload, share, and discover high-quality apps with ease.</p>
+    <div id="toast" class="toast glass"></div>
+
+    <main id="mainContent">
+        <!-- Home Section -->
+        <section id="homeSection" class="tab-content active">
+            <section class="hero staggered-fade-in">
+                <img src="hero.png" alt="APK Hub Hero"
+                    style="width: 100%; border-radius: 24px; margin-bottom: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                <h1>The Hub for Your<br><span style="color: var(--primary)">Android Universe</span></h1>
+                <p>Upload, share, and discover high-quality apps with ease.</p>
+            </section>
+
+            <div class="app-grid staggered-fade-in" id="appGrid">
+                <!-- App cards will be injected here -->
+            </div>
         </section>
 
-        <div class="app-grid staggered-fade-in" id="appGrid">
-            <!-- App cards will be injected here -->
-        </div>
+        <!-- Search Section -->
+        <section id="searchSection" class="tab-content" style="display: none; padding: 2rem;">
+            <div class="search-page-header">
+                <h2>Search Apps</h2>
+                <div class="search-bar-vertical">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="appSearchMobile" placeholder="Type app name...">
+                </div>
+            </div>
+            <div class="app-grid" id="searchGrid">
+                <!-- Search results -->
+            </div>
+        </section>
     </main>
 
     <div class="fab" id="openUpload" title="Upload New APK" style="display: none;">
@@ -44,15 +60,16 @@
 
     <!-- Bottom Navigation -->
     <nav class="bottom-nav glass">
-        <a href="#" class="nav-item active">
+        <div class="tab-indicator" id="tabIndicator"></div>
+        <a href="#" class="nav-item active" data-tab="homeSection">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-tab="homeSection">
             <i class="fas fa-th-large"></i>
             <span>Apps</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-tab="searchSection">
             <i class="fas fa-search"></i>
             <span>Search</span>
         </a>
@@ -98,6 +115,21 @@
             <button class="submit-btn"
                 style="background: transparent; border: 1px solid var(--glass-border); margin-top: 0.5rem;"
                 id="closeModal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModalOverlay">
+        <div class="modal glass">
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label for="adminPass">Password</label>
+                <input type="password" id="adminPass" placeholder="Enter password">
+            </div>
+            <button class="submit-btn shadow" id="submitLogin">Login</button>
+            <button class="submit-btn"
+                style="background: transparent; border: 1px solid var(--glass-border); margin-top: 0.5rem;"
+                id="closeLoginModal">Cancel</button>
         </div>
     </div>
 

@@ -2,7 +2,14 @@
 const SUPABASE_URL = 'https://ehtdmfpubjupdxeuoqsc.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_0WMzOxZ88SpifDg11-xZwA_TFrQkBx-';
 
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let sbClient = null;
+try {
+    if (window.supabase) {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+} catch (e) {
+    console.error("Supabase Error:", e);
+}
 
 let apps = [];
 let currentUploadedIcon = "";
@@ -11,7 +18,8 @@ let editingAppId = null;
 
 // DOM Elements
 const appGrid = document.getElementById('appGrid');
-const appSearch = document.getElementById('appSearch');
+const searchGrid = document.getElementById('searchGrid');
+const appSearchMobile = document.getElementById('appSearchMobile');
 const openUpload = document.getElementById('openUpload');
 const modalOverlay = document.getElementById('modalOverlay');
 const closeModal = document.getElementById('closeModal');
@@ -20,18 +28,41 @@ const appIconFile = document.getElementById('appIconFile');
 const iconPreview = document.getElementById('iconPreview');
 const loginBtn = document.getElementById('loginBtn');
 const loginStatus = document.getElementById('loginStatus');
+const navItems = document.querySelectorAll('.nav-item');
+const tabContents = document.querySelectorAll('.tab-content');
+const loginModalOverlay = document.getElementById('loginModalOverlay');
+const closeLoginModal = document.getElementById('closeLoginModal');
+const submitLogin = document.getElementById('submitLogin');
+const adminPassInput = document.getElementById('adminPass');
+const tabIndicator = document.getElementById('tabIndicator');
+const toast = document.getElementById('toast');
+
+// --- UTILS ---
+
+function showToast(message) {
+    toast.innerText = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
 
 // --- DATABASE FUNCTIONS ---
 
 async function fetchApps() {
-    if (!supabase) return;
-    const { data, error } = await supabase
+    // Show Skeletons
+    appGrid.innerHTML = Array(4).fill(0).map(() => `<div class="skeleton-card skeleton"></div>`).join('');
+
+    if (!sbClient) {
+        apps = [];
+        renderApps();
+        return;
+    }
+    const { data, error } = await sbClient
         .from('apps')
         .select('*')
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching apps:', error);
+        showToast("Error loading apps");
     } else {
         apps = data;
         renderApps();
@@ -39,122 +70,135 @@ async function fetchApps() {
 }
 
 async function saveApp(appData) {
-    if (!supabase) {
-        // Fallback for demo if no supabase keys
-        appData.id = Date.now();
-        apps.unshift(appData);
-        renderApps();
-        return;
-    }
-
-    const { data, error } = await supabase
-        .from('apps')
-        .upsert([appData])
-        .select();
-
+    if (!sbClient) return;
+    const { error } = await sbClient.from('apps').upsert([appData]);
     if (error) {
-        alert('Error saving app: ' + error.message);
+        showToast("Save failed");
     } else {
+        showToast(editingAppId ? "App updated" : "App published");
         fetchApps();
     }
 }
 
 async function deleteAppFromDB(id) {
-    if (!supabase) {
-        apps = apps.filter(app => app.id !== id);
-        renderApps();
-        return;
-    }
-
-    const { error } = await supabase
-        .from('apps')
-        .delete()
-        .eq('id', id);
-
+    if (!sbClient) return;
+    const { error } = await sbClient.from('apps').delete().eq('id', id);
     if (error) {
-        alert('Error deleting app: ' + error.message);
+        showToast("Delete failed");
     } else {
+        showToast("App deleted");
         fetchApps();
     }
 }
 
 // --- UI LOGIC ---
 
-// Admin Login Logic
-loginBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (!isAdmin) {
-        const password = prompt("Enter Admin Password:");
-        if (password === "admin") {
-            isAdmin = true;
-            loginStatus.innerText = "Admin On";
-            loginBtn.classList.add('active');
-            openUpload.style.display = 'flex';
-            renderApps();
-            alert("Welcome Admin! You can now add, edit, or delete apps.");
+// Tab Switching
+navItems.forEach((item, index) => {
+    item.addEventListener('click', (e) => {
+        if (item.id === 'loginBtn') return;
+        e.preventDefault();
+        const tabId = item.getAttribute('data-tab');
+
+        // Move Indicator
+        tabIndicator.style.transform = `translateX(${index * 100}%)`;
+
+        // Update Classes
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        // Show Content
+        tabContents.forEach(content => {
+            content.style.display = content.id === tabId ? 'block' : 'none';
+        });
+
+        if (tabId === 'searchSection') renderSearchApps();
+    });
+});
+
+// Admin Login
+if (loginBtn) {
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!isAdmin) {
+            loginModalOverlay.style.display = 'flex';
+            adminPassInput.focus();
         } else {
-            alert("Incorrect Password!");
+            isAdmin = false;
+            loginStatus.innerText = "Login";
+            loginBtn.classList.remove('active');
+            openUpload.style.display = 'none';
+            showToast("Admin logged out");
+            renderApps();
+            if (tabContents[1].style.display !== 'none') renderSearchApps();
         }
-    } else {
-        isAdmin = false;
-        loginStatus.innerText = "Login";
-        loginBtn.classList.remove('active');
-        openUpload.style.display = 'none';
+    });
+}
+
+closeLoginModal.addEventListener('click', () => {
+    loginModalOverlay.style.display = 'none';
+    adminPassInput.value = "";
+});
+
+submitLogin.addEventListener('click', () => {
+    if (adminPassInput.value === "admin") {
+        isAdmin = true;
+        loginStatus.innerText = "Admin Info";
+        loginBtn.classList.add('active');
+        openUpload.style.display = 'flex';
+        loginModalOverlay.style.display = 'none';
+        adminPassInput.value = "";
+        showToast("Welcome Admin!");
         renderApps();
+        if (tabContents[1].style.display !== 'none') renderSearchApps();
+    } else {
+        showToast("Wrong password!");
     }
 });
 
-// Handle Icon Selection
-iconPreview.addEventListener('click', () => appIconFile.click());
+adminPassInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') submitLogin.click();
+});
 
+// Icon logic
+iconPreview.addEventListener('click', () => appIconFile.click());
 appIconFile.addEventListener('change', function () {
     const file = this.files[0];
     if (file) {
-        // Validation: Keep it under 1MB for direct DB storage or use URL
-        if (file.size > 1024 * 1024) {
-            alert("Icon file too large! Please use an image under 1MB.");
-            return;
-        }
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = (e) => {
             currentUploadedIcon = e.target.result;
-            iconPreview.innerHTML = `<img src="${currentUploadedIcon}" alt="Preview">`;
-        }
+            iconPreview.innerHTML = `<img src="${currentUploadedIcon}" alt="Icon">`;
+        };
         reader.readAsDataURL(file);
     }
 });
 
-// Render Apps
-function renderApps(filteredApps = apps) {
-    appGrid.innerHTML = filteredApps.map(app => `
+// App Card Template
+function createAppCard(app) {
+    return `
         <div class="app-card glass">
-            <img src="${app.icon || 'https://api.dicebear.com/7.x/shapes/svg?seed=' + app.id}" alt="${app.name}" class="app-icon">
+            <img src="${app.icon || 'https://api.dicebear.com/7.x/shapes/svg?seed=' + app.id}" class="app-icon">
             <div class="app-info">
                 <h3>${app.name}</h3>
                 <div class="app-meta">
-                    <span><i class="fas fa-tag"></i> ${app.version}</span>
-                    <span><i class="fas fa-database"></i> ${app.size || 'N/A'}</span>
+                    <span>${app.version}</span>
                 </div>
             </div>
-            <a href="${app.url}" target="_blank" class="download-btn">
-                <i class="fas fa-download"></i> Download APK
-            </a>
+            <a href="${app.url}" target="_blank" class="download-btn">Download</a>
             <div class="admin-controls" style="display: ${isAdmin ? 'flex' : 'none'}">
-                <button class="edit-btn" onclick="editApp(${app.id})"><i class="fas fa-edit"></i> Edit</button>
-                <button class="delete-btn" onclick="deleteApp(${app.id})"><i class="fas fa-trash"></i> Delete</button>
+                <button class="edit-btn" onclick="editApp(${app.id})"><i class="fas fa-edit"></i></button>
+                <button class="delete-btn" onclick="deleteApp(${app.id})"><i class="fas fa-trash"></i></button>
             </div>
         </div>
-    `).join('');
+    `;
 }
 
-// Delete App Action
-window.deleteApp = (id) => {
-    if (confirm("Are you sure you want to delete this app?")) {
-        deleteAppFromDB(id);
-    }
-};
+function renderApps() { appGrid.innerHTML = apps.map(createAppCard).join(''); }
+function renderSearchApps(filtered = apps) { if (searchGrid) searchGrid.innerHTML = filtered.map(createAppCard).join(''); }
 
-// Edit App Action
+window.deleteApp = (id) => { if (confirm("Delete app?")) deleteAppFromDB(id); };
+
 window.editApp = (id) => {
     const app = apps.find(a => a.id === id);
     if (app) {
@@ -163,73 +207,37 @@ window.editApp = (id) => {
         document.getElementById('appVersion').value = app.version;
         document.getElementById('apkUrl').value = app.url;
         currentUploadedIcon = app.icon;
-        iconPreview.innerHTML = app.icon ? `<img src="${app.icon}" alt="Preview">` : `<i class="fas fa-camera"></i><span>Select Icon</span>`;
+        iconPreview.innerHTML = app.icon ? `<img src="${app.icon}" alt="Icon">` : `<i class="fas fa-camera"></i>`;
         modalOverlay.style.display = 'flex';
-        document.querySelector('.modal h2').innerText = "Edit APK";
     }
 };
 
-// Search Logic
-appSearch.addEventListener('input', (e) => {
+appSearchMobile.addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
-    const filtered = apps.filter(app =>
-        app.name.toLowerCase().includes(term)
-    );
-    renderApps(filtered);
+    renderSearchApps(apps.filter(app => app.name.toLowerCase().includes(term)));
 });
 
-// Modal UI Logic
 openUpload.addEventListener('click', () => {
     editingAppId = null;
     uploadForm.reset();
     currentUploadedIcon = "";
-    iconPreview.innerHTML = `<i class="fas fa-camera"></i><span>Select Icon</span>`;
-    document.querySelector('.modal h2').innerText = "Add New APK";
+    iconPreview.innerHTML = `<i class="fas fa-camera"></i>`;
     modalOverlay.style.display = 'flex';
 });
 
-closeModal.addEventListener('click', () => {
-    modalOverlay.style.display = 'none';
-});
+closeModal.addEventListener('click', () => modalOverlay.style.display = 'none');
 
-// Helper to convert GDrive view link to direct download link
-function formatGDriveLink(url) {
-    const driveRegex = /drive\.google\.com\/file\/d\/([^\/\?]+)/;
-    const match = url.match(driveRegex);
-    if (match && match[1]) {
-        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-    }
-    return url;
-}
-
-// Form Submission (Add or Update)
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    let rawUrl = document.getElementById('apkUrl').value;
     const appData = {
         name: document.getElementById('appName').value,
         version: document.getElementById('appVersion').value,
-        url: formatGDriveLink(rawUrl),
+        url: document.getElementById('apkUrl').value,
         icon: currentUploadedIcon,
-        size: "APK Hub",
-        category: "User Uploaded"
     };
-
-    if (editingAppId) {
-        appData.id = editingAppId;
-    }
-
+    if (editingAppId) appData.id = editingAppId;
     await saveApp(appData);
-
     modalOverlay.style.display = 'none';
-    uploadForm.reset();
-    currentUploadedIcon = "";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// Initial Fetch
-if (supabase) {
-    fetchApps();
-} else {
-    renderApps(); // Initialize empty grid if no DB
-}
+fetchApps();
